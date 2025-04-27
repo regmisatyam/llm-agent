@@ -4,6 +4,7 @@ import "./globals.css";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/auth";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import AuthProvider from "../components/AuthProvider";
 
 const geistSans = Geist({
@@ -37,6 +38,7 @@ export default async function RootLayout({
             <main className="flex-1 container mx-auto px-4 py-8">
               {children}
             </main>
+            <Footer />
           </div>
         </AuthProvider>
       </body>

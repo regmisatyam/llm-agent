@@ -11,19 +11,11 @@ export default function HomePage() {
 
   const features = [
     {
-      title: "Face Registration",
-      description: "Upload a photo and save a person's face for later recognition",
-      icon: "📷",
+      title: "Face Recognition",
+      description: "Register faces for identification and recognize them in real-time through your camera",
+      icon: "👁️",
       path: "/image-save",
       color: "bg-blue-100 border-blue-500",
-      category: "recognition"
-    },
-    {
-      title: "Live Face Recognition",
-      description: "Use your camera to detect and recognize registered faces in real-time",
-      icon: "👁️",
-      path: "/live-camera",
-      color: "bg-green-100 border-green-500",
       category: "recognition"
     },
     {
@@ -91,10 +83,10 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             <div className="md:w-1/2">
               <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-                The Smart Personal Assistant for Google Services
+                Your Smart Personal Assistant for Google Services and Daily Tasks
               </h1>
               <p className="text-xl text-blue-100 mb-8 max-w-lg">
-                GAgent combines AI, face recognition, and voice commands to make your Google experience smarter and more efficient.
+                GAgent combines AI Mail Summarization, AI integration in Google Calendar, face recognition, and voice commands to make your Google experience smarter and more efficient.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link 
@@ -127,55 +119,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* About Us Section */}
-      <div className="container mx-auto max-w-6xl py-16 px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3">Who We Are</h2>
-          <div className="w-20 h-1 bg-blue-600 mx-auto mb-6"></div>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We're a team of innovators passionate about making technology accessible and efficient. 
-            GAgent is our solution to streamline your Google services interaction using the latest in AI technology.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-blue-600 hover:shadow-lg transition-shadow">
-            <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold mb-2">Innovation First</h3>
-            <p className="text-gray-600">
-              We constantly push the boundaries of what's possible with AI and Google services integration.
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-600 hover:shadow-lg transition-shadow">
-            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold mb-2">Privacy Focused</h3>
-            <p className="text-gray-600">
-              Your data security is our priority. We ensure all your information is protected and handled responsibly.
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-purple-600 hover:shadow-lg transition-shadow">
-            <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold mb-2">Time Saving</h3>
-            <p className="text-gray-600">
-              Our tools are designed to save you time and make your digital life more efficient and productive.
-            </p>
-          </div>
-        </div>
-      </div>
+  
       
       {/* Our Products Section */}
       <div className="bg-gray-50 py-16 px-4">
@@ -255,7 +199,57 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      
+
+
+          {/* About Us Section */}
+      <div id="about" className="container mx-auto max-w-6xl py-16 px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-3">Who We Are</h2>
+          <div className="w-20 h-1 bg-blue-600 mx-auto mb-6"></div>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            We're a team of 4 university students passionate about making technology accessible and efficient. 
+            GAgent is our hackathon project that aims to streamline your Daily Tasks and Google services interaction using the latest in AI technology.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-blue-600 hover:shadow-lg transition-shadow">
+            <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Innovation First</h3>
+            <p className="text-gray-600">
+              We constantly push the boundaries of what's possible with AI and Google services integration.
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-600 hover:shadow-lg transition-shadow">
+            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Privacy Focused</h3>
+            <p className="text-gray-600">
+              Your data security is our priority. We ensure all your information is protected and handled responsibly.
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-purple-600 hover:shadow-lg transition-shadow">
+            <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Time Saving</h3>
+            <p className="text-gray-600">
+              Our tools are designed to save you time and make your digital life more efficient and productive.
+            </p>
+          </div>
+        </div>
+      </div>
       {/* Call To Action Section */}
       {!session && (
         <div className="container mx-auto max-w-5xl mt-16 px-4">
