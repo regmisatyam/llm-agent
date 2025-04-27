@@ -6,12 +6,14 @@ import { loadModels, processImage, saveFaceData } from '../utils/face-recognitio
 
 export default function ImageSavePage() {
   const [name, setName] = useState('');
+  const [notes, setNotes] = useState('');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [captureMode, setCaptureMode] = useState<'upload' | 'camera'>('upload');
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [showNotesField, setShowNotesField] = useState(false);
   
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +71,10 @@ export default function ImageSavePage() {
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNotes(e.target.value);
   };
 
   const startCamera = async () => {
@@ -156,13 +162,15 @@ export default function ImageSavePage() {
       }
       
       const faceDescriptor = detection.descriptor;
-      const result = saveFaceData(name, faceDescriptor);
+      const result = saveFaceData(name, faceDescriptor, notes);
       
       if (result) {
         setMessage({ text: `Face data for ${name} saved successfully!`, type: 'success' });
         // Reset form
         setName('');
+        setNotes('');
         setImageSrc(null);
+        setShowNotesField(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -195,6 +203,44 @@ export default function ImageSavePage() {
             disabled={isLoading}
           />
         </div>
+
+        {/* Notes toggle checkbox */}
+        <div className="mb-4">
+          <div className="flex items-center">
+            <input
+              id="show-notes"
+              type="checkbox"
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              checked={showNotesField}
+              onChange={(e) => setShowNotesField(e.target.checked)}
+              disabled={isLoading}
+            />
+            <label htmlFor="show-notes" className="ml-2 block text-sm text-gray-700">
+              Add notes about this person (optional)
+            </label>
+          </div>
+        </div>
+
+        {/* Notes textarea (only visible when showNotesField is true) */}
+        {showNotesField && (
+          <div className="mb-4">
+            <label htmlFor="notes" className="block text-gray-700 text-sm font-bold mb-2">
+              Notes:
+            </label>
+            <textarea
+              id="notes"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="Add some notes or information about this person that you want to remember"
+              rows={4}
+              value={notes}
+              onChange={handleNotesChange}
+              disabled={isLoading}
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              These notes will be available when chatting about this person in the future.
+            </p>
+          </div>
+        )}
 
         {/* Capture mode toggle */}
         <div className="mb-4">

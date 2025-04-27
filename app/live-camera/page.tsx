@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { loadModels, getFaceData, recognizeFace } from '../utils/face-recognition';
+import { loadModels, getFaceData, recognizeFace, getPersonNotes, recordInteraction } from '../utils/face-recognition';
 import { VoiceRecognition } from '../utils/voice-recognition';
 
 // Import faceapi dynamically to avoid SSR issues
@@ -13,6 +13,7 @@ export default function LiveCameraPage() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detectedName, setDetectedName] = useState<string | null>(null);
+  const [detectedNotes, setDetectedNotes] = useState<string | null>(null);
   const [savedFaces, setSavedFaces] = useState<{name: string}[]>([]);
   const [chatMessage, setChatMessage] = useState('');
   const [isProcessingChat, setIsProcessingChat] = useState(false);
@@ -59,7 +60,7 @@ export default function LiveCameraPage() {
 
         // Check if there are any saved faces
         const faces = getFaceData();
-        setSavedFaces(faces.map(face => ({ name: face.name })));
+        setSavedFaces(faces.map((face: { name: string }) => ({ name: face.name })));
         
         if (faces.length === 0) {
           setErrorMessage('No saved faces found. Please save a face first.');
@@ -92,6 +93,33 @@ export default function LiveCameraPage() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
+
+  // Add a new useEffect to send an automatic introductory message when a person is recognized
+  useEffect(() => {
+    // Only trigger when a name is newly detected (not Unknown) and camera is active
+    if (detectedName && detectedName !== 'Unknown' && isCameraActive && !isProcessingChat) {
+      // Add an AI message introducing the person
+      const notesSummary = detectedNotes 
+        ? ` ` 
+        : '';
+        
+      setChatHistory(prev => {
+        // Check if the last message was already an introduction for this person
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg && 
+            lastMsg.sender === 'ai' && 
+            lastMsg.text.includes(`I recognize this person as ${detectedName}`)) {
+          return prev; // Don't add duplicate introductions
+        }
+        
+        return [...prev, {
+          text: `I recognize this person as ${detectedName}.${notesSummary}`,
+          sender: 'ai',
+          timestamp: new Date()
+        }];
+      });
+    }
+  }, [detectedName, detectedNotes, isCameraActive, isProcessingChat]);
 
   const startCamera = async () => {
     if (!videoRef.current) return;
@@ -169,6 +197,17 @@ export default function LiveCameraPage() {
             const name = await recognizeFace(faceDescriptor);
             setDetectedName(name);
             
+            // If we have a recognized person (not unknown), get their notes
+            if (name && name !== 'Unknown') {
+              const notes = getPersonNotes(name);
+              setDetectedNotes(notes);
+              
+              // Log the recognition for debugging
+              console.log(`Recognized ${name}, notes:`, notes);
+            } else {
+              setDetectedNotes(null);
+            }
+            
             // Draw boxes around faces with labels
             faceapi.draw.drawDetections(canvasRef.current, detections);
             
@@ -185,6 +224,7 @@ export default function LiveCameraPage() {
             drawBox.draw(canvasRef.current);
           } else {
             setDetectedName(null);
+            setDetectedNotes(null);
           }
         }
       } catch (error) {
@@ -300,6 +340,14 @@ export default function LiveCameraPage() {
           contextPrompt += ` shows a person that I don't recognize (labeled as "Unknown").`;
         } else {
           contextPrompt += ` shows a person I recognize as "${detectedName}".`;
+          
+          // Add notes if available with more detailed formatting
+          if (detectedNotes) {
+            contextPrompt += `\n\nHere's what I know about ${detectedName}:\n${detectedNotes}`;
+            contextPrompt += `\n\nPlease use this information when responding to questions about ${detectedName} or about past interactions.`;
+          } else {
+            contextPrompt += `\n\nI don't have any saved information or past conversation history with ${detectedName} yet.`;
+          }
         }
       } else {
         contextPrompt += ` is not detecting any faces at the moment.`;
@@ -309,7 +357,7 @@ export default function LiveCameraPage() {
       
       contextPrompt += `\n\nThe user asked: "${userMessage.text}"`;
       
-      contextPrompt += `\n\nPlease respond to the user's question about face recognition. Be helpful, concise, and informative. If no face is detected or the face is unknown, you can mention that as appropriate.`;
+      contextPrompt += `\n\nPlease respond to the user's question about face recognition. Be helpful, concise, and informative. If the user is asking about previous conversations, refer to the notes. If no face is detected or the face is unknown, you can mention that as appropriate.`;
       
       // Send message to Gemini API
       const response = await fetch('/api/gemini', {
@@ -338,6 +386,11 @@ export default function LiveCameraPage() {
           timestamp: new Date()
         }];
       });
+      
+      // If we have a recognized person, record this interaction in their notes
+      if (detectedName && detectedName !== 'Unknown') {
+        recordInteraction(detectedName, `User: ${userMessage.text}\nAI: ${data.response}`);
+      }
     } catch (error) {
       console.error('Error sending message to Gemini:', error);
       
@@ -419,6 +472,123 @@ export default function LiveCameraPage() {
                 {detectedName && (
                   <div className={`mt-2 text-center p-2 rounded-lg ${detectedName === 'Unknown' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
                     <p className="font-bold">{detectedName === 'Unknown' ? 'Unknown Person' : `Hello, ${detectedName}!`}</p>
+                    {detectedName !== 'Unknown' && detectedNotes && (
+                      <div className="mt-2 text-sm max-h-20 overflow-y-auto">
+                        <p className="font-medium">Notes available:</p>
+                        <button 
+                          onClick={() => {
+                            const question = `Tell me about ${detectedName}`;
+                            // First add the user message to chat
+                            const userMessage = {
+                              text: question,
+                              sender: 'user' as const,
+                              timestamp: new Date()
+                            };
+                            setChatHistory(prev => [...prev, userMessage]);
+                            
+                            // Then process it with Gemini (using a timeout to ensure state updates first)
+                            setTimeout(() => {
+                              // We have to do this instead of using sendChatMessage directly
+                              // because setChatMessage alone won't trigger the API call
+                              setChatMessage(question);
+                              // Create a temporary copy of chatMessage
+                              const tempMessage = question;
+                              setChatMessage('');
+                              setIsProcessingChat(true);
+                              
+                              // Now call the sendChatMessage logic with our temporary message
+                              (async () => {
+                                try {
+                                  // Add a "thinking" message
+                                  setChatHistory(prev => [...prev, {
+                                    text: 'Thinking...',
+                                    sender: 'ai',
+                                    timestamp: new Date()
+                                  }]);
+                                  
+                                  // Build the prompt with context about recognized faces
+                                  let contextPrompt = `The camera currently`;
+                                  
+                                  if (detectedName) {
+                                    if (detectedName === 'Unknown') {
+                                      contextPrompt += ` shows a person that I don't recognize (labeled as "Unknown").`;
+                                    } else {
+                                      contextPrompt += ` shows a person I recognize as "${detectedName}".`;
+                                      
+                                      // Add notes if available with more detailed formatting
+                                      if (detectedNotes) {
+                                        contextPrompt += `\n\nHere's what I know about ${detectedName}:\n${detectedNotes}`;
+                                        contextPrompt += `\n\nPlease use this information when responding to questions about ${detectedName} or about past interactions.`;
+                                      } else {
+                                        contextPrompt += `\n\nI don't have any saved information or past conversation history with ${detectedName} yet.`;
+                                      }
+                                    }
+                                  } else {
+                                    contextPrompt += ` is not detecting any faces at the moment.`;
+                                  }
+                                  
+                                  contextPrompt += `\n\nAvailable saved faces in the system: ${savedFaces.map(face => face.name).join(', ')}.`;
+                                  
+                                  contextPrompt += `\n\nThe user asked: "${tempMessage}"`;
+                                  
+                                  contextPrompt += `\n\nPlease respond to the user's question about face recognition. Be helpful, concise, and informative. If the user is asking about previous conversations, refer to the notes. If no face is detected or the face is unknown, you can mention that as appropriate.`;
+                                  
+                                  // Send message to Gemini API
+                                  const response = await fetch('/api/gemini', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                      action: 'chat',
+                                      content: contextPrompt,
+                                    }),
+                                  });
+                                  
+                                  if (!response.ok) {
+                                    throw new Error('Failed to get response from AI');
+                                  }
+                                  
+                                  const data = await response.json();
+                                  
+                                  // Replace the "thinking" message with the actual response
+                                  setChatHistory(prev => {
+                                    const newHistory = prev.filter(msg => msg.text !== 'Thinking...');
+                                    return [...newHistory, {
+                                      text: data.response || "I'm sorry, I couldn't analyze the face recognition results.",
+                                      sender: 'ai',
+                                      timestamp: new Date()
+                                    }];
+                                  });
+                                  
+                                  // Record this interaction
+                                  if (detectedName && detectedName !== 'Unknown') {
+                                    recordInteraction(detectedName, `User: ${tempMessage}\nAI: ${data.response}`);
+                                  }
+                                } catch (error) {
+                                  console.error('Error sending message to Gemini:', error);
+                                  
+                                  // Replace the "thinking" message with an error message
+                                  setChatHistory(prev => {
+                                    const newHistory = prev.filter(msg => msg.text !== 'Thinking...');
+                                    return [...newHistory, {
+                                      text: "Sorry, I encountered an error while analyzing the face recognition results.",
+                                      sender: 'ai',
+                                      timestamp: new Date()
+                                    }];
+                                  });
+                                } finally {
+                                  setIsProcessingChat(false);
+                                }
+                              })();
+                            }, 100);
+                          }}
+                          className="mt-1 text-xs underline text-indigo-600 hover:text-indigo-800"
+                        >
+                          Ask about this person
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -581,7 +751,8 @@ export default function LiveCameraPage() {
                 <li>"Who do you see in the camera?"</li>
                 <li>"Is there anyone you recognize?"</li>
                 <li>"Tell me about the person you're seeing"</li>
-                <li>"Is that an unknown person?"</li>
+                <li>"What was our last conversation about?"</li>
+                <li>"Do you have any notes about this person?"</li>
               </ul>
             </div>
           </div>
@@ -601,6 +772,7 @@ export default function LiveCameraPage() {
           <li>AI-powered chat about recognized faces using Gemini</li>
           <li>Voice input for hands-free interaction</li>
           <li>Recognize faces that you've previously registered</li>
+          <li>Save and retrieve notes about people for personalized conversations</li>
           <li>Simple interface with clear visual feedback</li>
         </ul>
       </div>
