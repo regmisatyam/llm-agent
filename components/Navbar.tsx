@@ -28,7 +28,7 @@ export default function Navbar() {
               href="/" 
               className="text-xl font-bold text-indigo-600"
             >
-              AI Assistant
+              GAgent
             </Link>
             
             <div className="hidden md:flex space-x-4">

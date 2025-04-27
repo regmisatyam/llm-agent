@@ -30,7 +30,7 @@ export default function HomePage() {
     },
     {
       title: "Chat Assistant",
-      description: "Talk to our AI assistant about anything or get help with your Google services",
+      description: "Talk to our GAgent about anything or get help with your Google services",
       icon: "💬",
       path: "/chat",
       color: "bg-purple-100 border-purple-500"
@@ -61,7 +61,7 @@ export default function HomePage() {
   if (status === 'loading') {
     return (
       <div className="text-center py-10">
-        <h1 className="text-3xl font-bold mb-4">AI Assistant</h1>
+        <h1 className="text-3xl font-bold mb-4">GAgent</h1>
         <p className="mb-4">Loading...</p>
       </div>
     );
@@ -70,7 +70,7 @@ export default function HomePage() {
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">AI Assistant</h1>
+        <h1 className="text-4xl font-bold mb-4">GAgent</h1>
         <p className="text-xl text-gray-600">
           Your all-in-one personal assistant with face recognition, object detection, voice commands, and Google integration
         </p>

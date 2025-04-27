@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Assistant | Google Suite Integration",
-  description: "AI assistant powered by Gemini API for Google Suite",
+  title: "GAgent | Google Suite Integration",
+  description: "GAgent powered by Gemini API for Google Suite",
 };
 
 export default async function RootLayout({

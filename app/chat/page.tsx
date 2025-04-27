@@ -16,7 +16,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'Hello! I\'m your AI assistant. I can answer questions, check your emails, or help with your calendar. How can I help you today?',
+      content: 'Hello! I\'m your GAgent. I can answer questions, check your emails, or help with your calendar. How can I help you today?',
       sender: 'bot',
       timestamp: new Date()
     }

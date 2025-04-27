@@ -94,7 +94,7 @@ export const authOptions: NextAuthOptions = {
         // httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: true,
+        secure: isProduction && NEXTAUTH_URL?.startsWith('https://') || false,
       },
     },
   },

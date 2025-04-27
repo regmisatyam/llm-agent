@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         
       case 'chat':
         console.log('Gemini API - Processing chat request');
-        prompt = `You are a helpful AI assistant. Please answer the following question or respond to the request as concisely and helpfully as possible. If you don't know the answer, just say you don't know rather than making up information.
+        prompt = `You are a helpful GAgent. Please answer the following question or respond to the request as concisely and helpfully as possible. If you don't know the answer, just say you don't know rather than making up information.
 
 Question or request: "${content}"`;
         
