@@ -22,6 +22,13 @@ export default function HomePage() {
       color: "bg-green-100 border-green-500"
     },
     {
+      title: "Object Detection",
+      description: "Detect and identify 80+ everyday objects in real-time using your camera",
+      icon: "🔍",
+      path: "/object-detection",
+      color: "bg-amber-100 border-amber-500"
+    },
+    {
       title: "Chat Assistant",
       description: "Talk to our AI assistant about anything or get help with your Google services",
       icon: "💬",
@@ -65,7 +72,7 @@ export default function HomePage() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">AI Assistant</h1>
         <p className="text-xl text-gray-600">
-          Your all-in-one personal assistant with face recognition, voice commands, and Google integration
+          Your all-in-one personal assistant with face recognition, object detection, voice commands, and Google integration
         </p>
       </div>
       

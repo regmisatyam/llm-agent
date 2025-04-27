@@ -16,6 +16,7 @@ export default function Navbar() {
     { name: "Summary", path: "/summary" },
     { name: "Face Register", path: "/image-save" },
     { name: "Face Recognition", path: "/live-camera" },
+    { name: "Object Detection", path: "/object-detection" },
   ];
 
   return (
