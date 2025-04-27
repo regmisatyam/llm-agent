@@ -91,11 +91,10 @@ export const authOptions: NextAuthOptions = {
     csrfToken: {
       name: `${isProduction && NEXTAUTH_URL?.startsWith('https://') ? '__Host-' : ''}next-auth.csrf-token`,
       options: {
-        httpOnly: true,
+        // httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: isProduction && NEXTAUTH_URL?.startsWith('https://') || false,
-        domain: isProduction ? ".satym.me" : undefined,
+        secure: false,
       },
     },
   },
