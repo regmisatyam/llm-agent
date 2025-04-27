@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI-Powered Google Suite Assistant
 
-## Getting Started
+A modular AI agent built with Next.js and Google's Gemini API that integrates with Google services to provide seamless Gmail and Calendar management.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Email Management**: Fetch, summarize, and draft replies to Gmail messages
+- **Calendar Scheduling**: Schedule events from text or voice input
+- **Voice Typing**: Convert speech to text for emails, calendar events, and more
+- **Content Summarization**: Generate concise summaries of emails and documents
+
+## Tech Stack
+
+- **Frontend**: Next.js with TypeScript and Tailwind CSS
+- **Authentication**: NextAuth.js with Google OAuth
+- **AI**: Google's Gemini API (gemini-1.5-flash model)
+- **APIs**: Gmail API, Google Calendar API, Web Speech API
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js 16+
+- Google Cloud Platform account
+- Gemini API key
+
+### Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```
+# Next Auth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-next-auth-secret
+
+# Google Credentials
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Gemini API
+GOOGLE_GEMINI_API_KEY=your-gemini-api-key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Google API Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the Gmail API, Google Calendar API, and People API
+3. Set up OAuth consent screen (include scopes for Gmail and Calendar)
+4. Create OAuth 2.0 credentials (Web application type)
+5. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+6. Get a Gemini API key from the [Google AI Studio](https://makersuite.google.com/app/apikey)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Installation
 
-## Learn More
+```bash
+# Install dependencies
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# Run development server
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Usage
 
-## Deploy on Vercel
+1. Sign in with your Google account using the button in the top right
+2. Navigate between features using the main navigation
+3. **Email**: View and manage your Gmail messages with AI assistance
+4. **Calendar**: Create events using natural language or voice input
+5. **Voice**: Use speech recognition to generate text
+6. **Summary**: Summarize any text content using the Gemini API
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+├── app/                  # Next.js app router
+│   ├── api/              # API routes
+│   │   └── auth/         # NextAuth.js authentication
+│   ├── calendar/         # Calendar page
+│   ├── email/            # Email management page
+│   ├── summary/          # Content summarization page
+│   ├── voice/            # Voice typing page
+│   ├── layout.tsx        # Root layout with navigation
+│   └── page.tsx          # Home page
+├── components/           # Reusable components
+├── utils/                # Utility functions
+│   ├── gemini.ts         # Gemini API integration
+│   ├── google-api.ts     # Google API utilities
+│   └── voice-recognition.ts # Voice recognition utility
+└── types/                # TypeScript type definitions
+```
+
+## License
+
+MIT
