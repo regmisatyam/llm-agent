@@ -33,6 +33,19 @@ export async function POST(request: NextRequest) {
         result = await model.generateContent(prompt);
         return NextResponse.json({ reply: result.response.text() });
         
+      case 'chat':
+        console.log('Gemini API - Processing chat request');
+        prompt = `You are a helpful AI assistant. Please answer the following question or respond to the request as concisely and helpfully as possible. If you don't know the answer, just say you don't know rather than making up information.
+
+Question or request: "${content}"`;
+        
+        console.log('Gemini API - Sending chat prompt to model');
+        result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        console.log('Gemini API - Received chat response');
+        
+        return NextResponse.json({ response: responseText });
+        
       case 'parseEvent':
         console.log('Gemini API - Parsing calendar event');
         prompt = `You are a calendar event parser. Extract calendar event details from this text: "${content}"
@@ -58,12 +71,12 @@ Input: "${content}"`;
 
         console.log('Gemini API - Sending prompt to model');
         result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        console.log('Gemini API - Received response:', responseText);
+        const eventResponseText = result.response.text();
+        console.log('Gemini API - Received response:', eventResponseText);
         
         try {
           // Clean up the response text to ensure it's valid JSON
-          let cleanedResponse = responseText.replace(/```json|```/g, '').trim();
+          let cleanedResponse = eventResponseText.replace(/```json|```/g, '').trim();
           
           // Sometimes Gemini includes extra text - find the first { and last }
           const firstBrace = cleanedResponse.indexOf('{');
@@ -85,7 +98,7 @@ Input: "${content}"`;
             return NextResponse.json({ 
               error: `Event parsing incomplete: missing fields: ${missingFields.join(', ')}`,
               partialEvent: parsedEvent,
-              rawResponse: responseText
+              rawResponse: eventResponseText
             }, { status: 422 });
           }
           
@@ -100,7 +113,7 @@ Input: "${content}"`;
               return NextResponse.json({ 
                 error: 'Invalid date format in parsed event',
                 partialEvent: parsedEvent,
-                rawResponse: responseText
+                rawResponse: eventResponseText
               }, { status: 422 });
             }
           }
@@ -117,7 +130,7 @@ Input: "${content}"`;
                 return NextResponse.json({ 
                   error: `Invalid time format for ${timeField}`,
                   partialEvent: parsedEvent,
-                  rawResponse: responseText
+                  rawResponse: eventResponseText
                 }, { status: 422 });
               }
             }
@@ -130,7 +143,7 @@ Input: "${content}"`;
           return NextResponse.json({ 
             error: 'Failed to parse event details',
             details: error instanceof Error ? error.message : String(error),
-            response: responseText
+            response: eventResponseText
           }, { status: 500 });
         }
         
