@@ -22,10 +22,10 @@ export default function Home() {
           path="/calendar"
         />
         <FeatureCard 
-          title="Voice Typing" 
-          description="Convert your speech to text for emails, calendar events, and more."
-          icon="🎤"
-          path="/voice"
+          title="Chat" 
+          description="Chat with the AI assistant to ask questions, manage your emails, calendar, and more."
+          icon="💬"
+          path="/chat"
         />
         <FeatureCard 
           title="Content Summarization" 
