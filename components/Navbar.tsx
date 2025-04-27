@@ -14,6 +14,8 @@ export default function Navbar() {
     { name: "Calendar", path: "/calendar" },
     { name: "Voice Typing", path: "/voice" },
     { name: "Summary", path: "/summary" },
+    { name: "Face Register", path: "/image-save" },
+    { name: "Face Recognition", path: "/live-camera" },
   ];
 
   return (
