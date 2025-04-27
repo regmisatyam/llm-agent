@@ -112,8 +112,32 @@ export default function CalendarPage() {
       // Convert date and times to proper format
       const { title, date, startTime, endTime, description, attendees } = parsedEvent;
       
-      // Parse date and time strings to create ISO strings
-      const eventDate = new Date(date);
+      console.log('Creating event with parsed data:', parsedEvent);
+      
+      // Make sure we have a valid date - if date is "tomorrow", "next Friday", etc.
+      let eventDate;
+      try {
+        // Try to parse the date string
+        eventDate = new Date(date);
+        if (isNaN(eventDate.getTime())) {
+          // If date can't be parsed, it might be a relative date
+          throw new Error('Invalid date format');
+        }
+      } catch (error) {
+        // For relative dates, use current date as fallback
+        console.log('Using current date as fallback for:', date);
+        eventDate = new Date();
+        
+        // If the date contains "tomorrow", add one day
+        if (date.toLowerCase().includes('tomorrow')) {
+          eventDate.setDate(eventDate.getDate() + 1);
+        } else if (date.toLowerCase().includes('next week')) {
+          eventDate.setDate(eventDate.getDate() + 7);
+        }
+        // Add more relative date handling as needed
+      }
+      
+      // Parse time strings
       const [startHour, startMinute] = startTime.split(':').map(Number);
       const [endHour, endMinute] = endTime.split(':').map(Number);
       
@@ -123,10 +147,40 @@ export default function CalendarPage() {
       const endDateTime = new Date(eventDate);
       endDateTime.setHours(endHour, endMinute, 0);
       
+      // If end time is before start time, assume it's the next day
+      if (endDateTime < startDateTime) {
+        endDateTime.setDate(endDateTime.getDate() + 1);
+      }
+      
+      console.log('Calculated dates:', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString()
+      });
+      
       // Format attendees if provided
       const attendeeList = attendees ? 
         attendees.split(',').map((email: string) => ({ email: email.trim() })) : 
-        undefined;
+        [];
+      
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('Using timezone:', timeZone);
+      
+      // Create event data
+      const eventPayload = {
+        summary: title,
+        description: description || '',
+        start: { 
+          dateTime: startDateTime.toISOString(), 
+          timeZone
+        },
+        end: { 
+          dateTime: endDateTime.toISOString(), 
+          timeZone
+        },
+        attendees: attendeeList,
+      };
+      
+      console.log('Sending event payload:', eventPayload);
       
       // Create the event via API
       const response = await fetch('/api/calendar', {
@@ -134,31 +188,35 @@ export default function CalendarPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          summary: title,
-          description,
-          start: { 
-            dateTime: startDateTime.toISOString(), 
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
-          },
-          end: { 
-            dateTime: endDateTime.toISOString(), 
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
-          },
-          attendees: attendeeList,
-        }),
+        body: JSON.stringify(eventPayload),
       });
       
-      if (!response.ok) throw new Error('Failed to create event');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Calendar API error:', errorData);
+        throw new Error(`Failed to create event: ${errorData.details || errorData.error || response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Event created successfully:', result);
+      
+      // Show success message with link if available
+      if (result.link) {
+        const message = `Event created successfully!\nView in Google Calendar: ${result.link}`;
+        alert(message);
+        // Could also open the link in a new tab
+        window.open(result.link, '_blank');
+      } else {
+        alert('Event created successfully!');
+      }
       
       // Reset state and reload events
       setEventInput('');
       setParsedEvent(null);
-      alert('Event created successfully!');
       loadEvents();
     } catch (error) {
       console.error('Error creating event:', error);
-      alert('Failed to create event. Please try again.');
+      alert('Failed to create event. Please try again. Error: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setLoading(false);
     }
