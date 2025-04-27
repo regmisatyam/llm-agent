@@ -10,8 +10,14 @@ export default function ImageSavePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [captureMode, setCaptureMode] = useState<'upload' | 'camera'>('upload');
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const initFaceAPI = async () => {
@@ -38,9 +44,17 @@ export default function ImageSavePage() {
     if (typeof window !== 'undefined') {
       initFaceAPI();
     }
+
+    // Cleanup function to stop camera when component unmounts
+    return () => {
+      stopCamera();
+    };
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    stopCamera(); // Stop camera if it's active
+    setCaptureMode('upload');
+    
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -57,9 +71,75 @@ export default function ImageSavePage() {
     setName(e.target.value);
   };
 
+  const startCamera = async () => {
+    // Clear any existing image
+    setImageSrc(null);
+    setCaptureMode('camera');
+    
+    if (!videoRef.current) return;
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }
+      });
+      
+      videoRef.current.srcObject = stream;
+      streamRef.current = stream;
+      setIsCameraActive(true);
+      
+      if (message?.type === 'error' && message.text.includes('camera')) {
+        setMessage(null);
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setMessage({ 
+        text: 'Could not access camera. Please check permissions or use the upload option.', 
+        type: 'error' 
+      });
+      setCaptureMode('upload');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const videoWidth = videoRef.current.videoWidth;
+    const videoHeight = videoRef.current.videoHeight;
+    
+    // Set canvas dimensions to match video
+    canvasRef.current.width = videoWidth;
+    canvasRef.current.height = videoHeight;
+    
+    // Draw current video frame to canvas
+    const ctx = canvasRef.current.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0, videoWidth, videoHeight);
+      
+      // Convert canvas to data URL and set as image source
+      const imageSrc = canvasRef.current.toDataURL('image/png');
+      setImageSrc(imageSrc);
+      
+      // Stop camera after capture
+      stopCamera();
+    }
+  };
+
   const handleSave = async () => {
     if (!name || !imageSrc || !imageRef.current || !modelsLoaded) {
-      setMessage({ text: 'Please provide a name and upload an image', type: 'error' });
+      setMessage({ text: 'Please provide a name and upload/capture an image', type: 'error' });
       return;
     }
 
@@ -116,26 +196,94 @@ export default function ImageSavePage() {
           />
         </div>
 
+        {/* Capture mode toggle */}
         <div className="mb-4">
-          <label htmlFor="image" className="block text-gray-700 text-sm font-bold mb-2">
-            Upload Photo:
-          </label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            id="image"
-            accept="image/*"
-            className="w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-indigo-50 file:text-indigo-700
-              hover:file:bg-indigo-100"
-            onChange={handleFileChange}
-            disabled={isLoading}
-          />
+          <div className="flex border rounded-md overflow-hidden">
+            <button
+              onClick={() => {
+                stopCamera();
+                setCaptureMode('upload');
+              }}
+              className={`flex-1 py-2 ${
+                captureMode === 'upload'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Upload Photo
+            </button>
+            <button
+              onClick={startCamera}
+              className={`flex-1 py-2 ${
+                captureMode === 'camera'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Use Camera
+            </button>
+          </div>
         </div>
 
+        {/* Upload area (visible in upload mode) */}
+        {captureMode === 'upload' && (
+          <div className="mb-4">
+            <label htmlFor="image" className="block text-gray-700 text-sm font-bold mb-2">
+              Upload Photo:
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              id="image"
+              accept="image/*"
+              className="w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-indigo-50 file:text-indigo-700
+                hover:file:bg-indigo-100"
+              onChange={handleFileChange}
+              disabled={isLoading}
+            />
+          </div>
+        )}
+
+        {/* Camera preview (visible in camera mode) */}
+        {captureMode === 'camera' && (
+          <div className="mb-4">
+            <p className="block text-gray-700 text-sm font-bold mb-2">
+              {isCameraActive ? 'Camera Preview:' : 'Camera not active'}
+            </p>
+            <div className="border border-gray-300 rounded-lg p-2 bg-gray-100">
+              <video
+                ref={videoRef}
+                className="w-full h-auto rounded-lg"
+                autoPlay
+                playsInline
+                muted
+                style={{ display: isCameraActive ? 'block' : 'none' }}
+              />
+              {!isCameraActive && (
+                <div className="h-64 flex items-center justify-center">
+                  <p className="text-gray-500">Camera is not active</p>
+                </div>
+              )}
+            </div>
+            {isCameraActive && (
+              <button
+                onClick={capturePhoto}
+                disabled={isLoading}
+                className="mt-2 w-full py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
+              >
+                Capture Photo
+              </button>
+            )}
+            {/* Hidden canvas for capturing video frame */}
+            <canvas ref={canvasRef} className="hidden"></canvas>
+          </div>
+        )}
+
+        {/* Image preview (visible when an image is captured or uploaded) */}
         {imageSrc && (
           <div className="mb-4">
             <p className="text-gray-700 text-sm font-bold mb-2">Preview:</p>
