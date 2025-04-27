@@ -62,6 +62,22 @@ export default function DebugPage() {
       setIsLoading(false);
     }
   };
+  
+  // Handle direct Google sign-in
+  const handleSignIn = () => {
+    signIn('google', { 
+      callbackUrl: window.location.href,
+      redirect: true
+    });
+  };
+  
+  // Handle sign-out with direct callback
+  const handleSignOut = () => {
+    signOut({ 
+      callbackUrl: window.location.href,
+      redirect: true
+    });
+  };
 
   // Run auth check on mount
   useEffect(() => {
@@ -101,7 +117,7 @@ export default function DebugPage() {
         <div className="mt-4 flex space-x-4">
           {!session ? (
             <button 
-              onClick={() => signIn('google')} 
+              onClick={handleSignIn} 
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               Sign In with Google
@@ -109,7 +125,7 @@ export default function DebugPage() {
           ) : (
             <>
               <button 
-                onClick={() => signOut()} 
+                onClick={handleSignOut} 
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
                 Sign Out

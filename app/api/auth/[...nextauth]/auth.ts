@@ -62,6 +62,11 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  // Custom pages to bypass NextAuth's default pages
+  pages: {
+    signIn: '/auth/signin',
+    signOut: '/auth/signout',
+  },
   cookies: {
     sessionToken: {
       name: `${isProduction && NEXTAUTH_URL?.startsWith('https://') ? '__Secure-' : ''}next-auth.session-token`,
