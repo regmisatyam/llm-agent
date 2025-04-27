@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { initObjectDetection, detectObjects, drawDetections, DetectedObject } from '../utils/object-detection';
+import { VoiceRecognition } from '../utils/voice-recognition';
 
 export default function ObjectDetectionPage() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -13,6 +14,7 @@ export default function ObjectDetectionPage() {
   const [showInfo, setShowInfo] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
   const [isProcessingChat, setIsProcessingChat] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<{text: string, sender: 'user' | 'ai', timestamp: Date}[]>([
     {
       text: "Hello! I can tell you about objects I detect in the camera. Try asking me something like 'What objects do you see?' or 'Tell me about the person in the image.'",
@@ -29,8 +31,9 @@ export default function ObjectDetectionPage() {
   const frameCountRef = useRef(0);
   const lastTimeRef = useRef(Date.now());
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const voiceRecognitionRef = useRef<VoiceRecognition | null>(null);
 
-  // Initialize object detection model
+  // Initialize object detection model and voice recognition
   useEffect(() => {
     const initialize = async () => {
       setIsInitializing(true);
@@ -38,6 +41,11 @@ export default function ObjectDetectionPage() {
         const isInitialized = await initObjectDetection();
         if (!isInitialized) {
           setErrorMessage('Failed to initialize object detection model');
+        }
+        
+        // Initialize voice recognition
+        if (typeof window !== 'undefined') {
+          voiceRecognitionRef.current = new VoiceRecognition();
         }
       } catch (error) {
         console.error('Error initializing object detection:', error);
@@ -51,6 +59,7 @@ export default function ObjectDetectionPage() {
 
     return () => {
       stopCamera();
+      stopVoiceRecognition();
       
       if (statsIntervalRef.current) {
         clearInterval(statsIntervalRef.current);
@@ -184,6 +193,50 @@ export default function ObjectDetectionPage() {
     setShowInfo(prev => !prev);
   };
 
+  // Toggle voice recognition
+  const toggleVoiceRecognition = () => {
+    if (isProcessingChat || !isCameraActive || detections.length === 0) return;
+    
+    if (isListening) {
+      stopVoiceRecognition();
+    } else {
+      startVoiceRecognition();
+    }
+  };
+
+  // Start voice recognition
+  const startVoiceRecognition = () => {
+    if (!voiceRecognitionRef.current || isListening) return;
+    
+    if (voiceRecognitionRef.current.start(
+      // onResult callback
+      (transcript) => {
+        setChatMessage(transcript);
+      },
+      // onEnd callback
+      () => {
+        setIsListening(false);
+      }
+    )) {
+      setIsListening(true);
+    }
+  };
+
+  // Stop voice recognition
+  const stopVoiceRecognition = () => {
+    if (!voiceRecognitionRef.current || !isListening) return;
+    
+    voiceRecognitionRef.current.stop();
+    setIsListening(false);
+    
+    // If there's text in the input, send the message after a short delay
+    if (chatMessage.trim()) {
+      setTimeout(() => {
+        sendChatMessage();
+      }, 500);
+    }
+  };
+
   // Capture the current frame from video as a data URL
   const captureFrame = (): string | null => {
     if (!videoRef.current || !canvasRef.current) return null;
@@ -211,6 +264,11 @@ export default function ObjectDetectionPage() {
   // Send a message to Gemini API about the detected objects
   const sendChatMessage = async () => {
     if (!chatMessage.trim() || isProcessingChat || detections.length === 0) return;
+    
+    // Stop voice recognition if it's active
+    if (isListening) {
+      stopVoiceRecognition();
+    }
     
     // Add user message to chat history
     const userMessage = {
@@ -262,7 +320,7 @@ Current camera view contains the following objects: ${uniqueObjects.join(', ')}.
 Detailed object information:
 ${objectsContext}
 
-The user asked: "${chatMessage}"
+The user asked: "${userMessage.text}"
 
 Please respond to the user's question about what's visible in the camera. Be helpful, concise, and informative. If you're unsure about something not clearly detected, you can mention that uncertainty.
       `.trim();
@@ -467,15 +525,41 @@ Please respond to the user's question about what's visible in the camera. Be hel
           {/* Chat input */}
           <div className="border-t pt-4 mt-auto">
             <div className="flex items-center">
+              {/* Voice input button */}
+              <button
+                onClick={toggleVoiceRecognition}
+                disabled={isProcessingChat || !isCameraActive || detections.length === 0}
+                className={`p-2 rounded-full mr-2 ${
+                  isListening ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title={isListening ? "Stop listening" : "Ask with voice"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                  />
+                </svg>
+              </button>
+              
               <input
                 type="text"
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
-                placeholder="Ask about objects in the camera..."
+                placeholder={isListening ? "Listening..." : "Ask about objects in the camera..."}
                 className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                disabled={isProcessingChat || !isCameraActive || detections.length === 0}
+                disabled={isProcessingChat || !isCameraActive || detections.length === 0 || isListening}
               />
+              
               <button
                 onClick={sendChatMessage}
                 disabled={!chatMessage.trim() || isProcessingChat || !isCameraActive || detections.length === 0}
@@ -510,6 +594,16 @@ Please respond to the user's question about what's visible in the camera. Be hel
                 )}
               </button>
             </div>
+            
+            {/* Voice indicator */}
+            {isListening && (
+              <div className="mt-2 text-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  <span className="animate-pulse bg-red-400 rounded-full h-2 w-2 mr-2"></span>
+                  Listening... Click the microphone again to stop and send
+                </span>
+              </div>
+            )}
             
             {!isCameraActive && (
               <p className="mt-2 text-sm text-red-500">
@@ -547,6 +641,7 @@ Please respond to the user's question about what's visible in the camera. Be hel
         <ul className="list-disc list-inside space-y-1">
           <li>Real-time object detection directly in your browser</li>
           <li>AI-powered chat about detected objects using Gemini</li>
+          <li>Voice input for hands-free interaction</li>
           <li>Detection of 80+ common objects including people, animals, vehicles, and household items</li>
           <li>Interactive interface with performance metrics</li>
         </ul>
