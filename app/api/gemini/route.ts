@@ -7,40 +7,51 @@ const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, content } = await request.json();
+    const { action, content, prompt } = await request.json();
     console.log(`Gemini API - Processing ${action} request`);
     
-    if (!action || !content) {
+    if (!action || (!content && !prompt)) {
       console.log('Gemini API - Missing required fields');
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
-    let prompt = '';
+    let promptText = '';
     let result;
     
     switch (action) {
       case 'summarize':
-        prompt = `Summarize the following content in a concise way, highlighting key points and any action items:
+        promptText = `Summarize the following content in a concise way, highlighting key points and any action items:
         
         ${content}`;
-        result = await model.generateContent(prompt);
+        result = await model.generateContent(promptText);
         return NextResponse.json({ summary: result.response.text() });
         
       case 'draftReply':
-        prompt = `Draft a professional reply to the following email:
+        promptText = `Draft a professional reply to the following email:
         
         ${content}`;
-        result = await model.generateContent(prompt);
+        result = await model.generateContent(promptText);
         return NextResponse.json({ reply: result.response.text() });
+        
+      case 'generateEmail':
+        console.log('Gemini API - Generating email from prompt');
+        promptText = `Write a professional email based on the following description:
+        
+        ${prompt}
+        
+        Please include a proper greeting, clear body paragraphs, and a professional sign-off.`;
+        
+        result = await model.generateContent(promptText);
+        return NextResponse.json({ content: result.response.text() });
         
       case 'chat':
         console.log('Gemini API - Processing chat request');
-        prompt = `You are a helpful GAgent. Please answer the following question or respond to the request as concisely and helpfully as possible. If you don't know the answer, just say you don't know rather than making up information.
+        promptText = `You are a helpful GAgent. Please answer the following question or respond to the request as concisely and helpfully as possible. If you don't know the answer, just say you don't know rather than making up information.
 
 Question or request: "${content}"`;
         
         console.log('Gemini API - Sending chat prompt to model');
-        result = await model.generateContent(prompt);
+        result = await model.generateContent(promptText);
         const responseText = result.response.text();
         console.log('Gemini API - Received chat response');
         
@@ -48,7 +59,7 @@ Question or request: "${content}"`;
         
       case 'parseEvent':
         console.log('Gemini API - Parsing calendar event');
-        prompt = `You are a calendar event parser. Extract calendar event details from this text: "${content}"
+        promptText = `You are a calendar event parser. Extract calendar event details from this text: "${content}"
 
 Return a valid JSON object with these fields:
 1. title: The name/title of the event
@@ -70,7 +81,7 @@ VERY IMPORTANT:
 Input: "${content}"`;
 
         console.log('Gemini API - Sending prompt to model');
-        result = await model.generateContent(prompt);
+        result = await model.generateContent(promptText);
         const eventResponseText = result.response.text();
         console.log('Gemini API - Received response:', eventResponseText);
         
