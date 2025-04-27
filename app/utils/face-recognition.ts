@@ -1,7 +1,23 @@
 'use client';
 
+// Define a proper interface for FaceAPI instead of using any
+interface FaceAPI {
+  detectSingleFace: (input: HTMLImageElement) => any;
+  detectAllFaces: (input: HTMLVideoElement) => any;
+  draw: {
+    drawDetections: (canvas: HTMLCanvasElement, detections: any) => void;
+    DrawBox: new (box: any, options: any) => { draw: (canvas: HTMLCanvasElement) => void };
+  };
+  euclideanDistance: (descriptor1: Float32Array, descriptor2: Float32Array) => number;
+  nets: {
+    ssdMobilenetv1: { loadFromUri: (url: string) => Promise<void> };
+    faceLandmark68Net: { loadFromUri: (url: string) => Promise<void> };
+    faceRecognitionNet: { loadFromUri: (url: string) => Promise<void> };
+  };
+}
+
 // Import dynamically to avoid server-side rendering issues
-let faceapi: any = null;
+let faceapi: FaceAPI | null = null;
 
 // Define interface for face data
 interface FaceData {
@@ -196,7 +212,7 @@ export const recognizeFace = async (descriptor: Float32Array, threshold = 0.5) =
       const savedDescriptor = new Float32Array(face.descriptor);
       
       // Calculate distance between current face and saved face
-      const distance = faceapi.euclideanDistance(descriptor, savedDescriptor);
+      const distance = faceapi ? faceapi.euclideanDistance(descriptor, savedDescriptor) : 1.0;
       
       // Update best match if this distance is smaller
       if (distance < bestMatch.distance) {

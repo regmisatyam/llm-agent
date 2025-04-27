@@ -5,8 +5,23 @@ import Link from 'next/link';
 import { loadModels, getFaceData, recognizeFace, getPersonNotes, recordInteraction } from '../utils/face-recognition';
 import { VoiceRecognition } from '../utils/voice-recognition';
 
+// Define a proper type for faceapi instead of using any
+interface FaceAPI {
+  detectAllFaces: (input: HTMLVideoElement) => any;
+  draw: {
+    drawDetections: (canvas: HTMLCanvasElement, detections: any) => void;
+    DrawBox: new (box: any, options: any) => { draw: (canvas: HTMLCanvasElement) => void };
+  };
+  euclideanDistance: (descriptor1: Float32Array, descriptor2: Float32Array) => number;
+  nets: {
+    ssdMobilenetv1: { loadFromUri: (url: string) => Promise<void> };
+    faceLandmark68Net: { loadFromUri: (url: string) => Promise<void> };
+    faceRecognitionNet: { loadFromUri: (url: string) => Promise<void> };
+  };
+}
+
 // Import faceapi dynamically to avoid SSR issues
-let faceapi: any = null;
+let faceapi: FaceAPI | null = null;
 
 export default function LiveCameraPage() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -83,7 +98,9 @@ export default function LiveCameraPage() {
     // Cleanup on unmount
     return () => {
       stopCamera();
-      stopVoiceRecognition();
+      if (typeof stopVoiceRecognition === 'function') {
+        stopVoiceRecognition();
+      }
     };
   }, []);
   
@@ -331,6 +348,8 @@ export default function LiveCameraPage() {
 
       // Capture the current frame if camera is active
       const frameDataUrl = isCameraActive ? captureFrame() : null;
+      
+      // Note: frameDataUrl is captured for potential future use with image analysis APIs
       
       // Build the prompt with context about recognized faces
       let contextPrompt = `The camera currently`;
@@ -748,11 +767,11 @@ export default function LiveCameraPage() {
             <div className="mt-3 text-xs text-gray-500">
               <p>Try asking:</p>
               <ul className="mt-1 list-disc list-inside space-y-1">
-                <li>"Who do you see in the camera?"</li>
-                <li>"Is there anyone you recognize?"</li>
-                <li>"Tell me about the person you're seeing"</li>
-                <li>"What was our last conversation about?"</li>
-                <li>"Do you have any notes about this person?"</li>
+                <li>&quot;Who do you see in the camera?&quot;</li>
+                <li>&quot;Is there anyone you recognize?&quot;</li>
+                <li>&quot;Tell me about the person you&apos;re seeing&quot;</li>
+                <li>&quot;What was our last conversation about?&quot;</li>
+                <li>&quot;Do you have any notes about this person?&quot;</li>
               </ul>
             </div>
           </div>
@@ -764,7 +783,7 @@ export default function LiveCameraPage() {
         <h2 className="text-xl font-bold mb-4">About Face Recognition with AI Chat</h2>
         <p className="mb-4">
           This demo uses face-api.js to recognize faces in real-time, and 
-          integrates with Google's Gemini 1.5 Flash API to answer questions about who's being detected.
+          integrates with Google&apos;s Gemini 1.5 Flash API to answer questions about who&apos;s being detected.
         </p>
         <h3 className="font-bold mt-4 mb-2">Features:</h3>
         <ul className="list-disc list-inside space-y-1">

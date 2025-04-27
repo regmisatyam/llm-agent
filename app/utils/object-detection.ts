@@ -1,10 +1,26 @@
 'use client';
 
-// Use dynamic imports for TensorFlow and COCO-SSD to avoid SSR issues
-let tf: any = null;
-let cocoSsd: any = null;
-let model: any = null;
+// Define proper interfaces instead of using 'any'
+interface DetectionObject {
+  bbox: [number, number, number, number];
+  class: string;
+  score: number;
+}
 
+interface ObjectDetectionModel {
+  detect: (input: HTMLVideoElement | HTMLImageElement) => Promise<DetectionObject[]>;
+}
+
+interface TensorFlow {
+  ready: () => Promise<void>;
+  loadGraphModel: (url: string) => Promise<ObjectDetectionModel>;
+}
+
+// Use proper typing for tensorflow and model
+let tf: TensorFlow | null = null;
+let model: ObjectDetectionModel | null = null;
+
+// Define the interface for detected objects
 export interface DetectedObject {
   bbox: [number, number, number, number]; // [x, y, width, height]
   class: string;
@@ -16,24 +32,19 @@ export interface DetectedObject {
  */
 export const initObjectDetection = async (): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
-
+  
   try {
-    // Dynamically import TensorFlow.js and COCO-SSD
+    // Import TensorFlow.js dynamically
     if (!tf) {
-      tf = await import('@tensorflow/tfjs');
+      const tensorflow = await import('@tensorflow/tfjs');
+      tf = tensorflow as unknown as TensorFlow;
       await tf.ready();
-      console.log('TensorFlow.js loaded:', tf.version.tfjs);
     }
     
-    if (!cocoSsd) {
-      cocoSsd = await import('@tensorflow-models/coco-ssd');
-    }
-    
-    // Load the COCO-SSD model if not already loaded
+    // Load COCO-SSD model (if not already loaded)
     if (!model) {
-      console.log('Loading COCO-SSD model...');
+      const cocoSsd = await import('@tensorflow-models/coco-ssd');
       model = await cocoSsd.load();
-      console.log('COCO-SSD model loaded');
     }
     
     return true;
@@ -47,25 +58,23 @@ export const initObjectDetection = async (): Promise<boolean> => {
  * Detect objects in an image or video frame
  */
 export const detectObjects = async (
-  element: HTMLImageElement | HTMLVideoElement
+  videoElement: HTMLVideoElement | HTMLImageElement
 ): Promise<DetectedObject[]> => {
   if (!model) {
-    try {
-      const initialized = await initObjectDetection();
-      if (!initialized) {
-        console.error('Failed to initialize object detection');
-        return [];
-      }
-    } catch (error) {
-      console.error('Error during model initialization:', error);
-      return [];
-    }
+    console.error('Object detection model not initialized');
+    return [];
   }
-
+  
   try {
-    // Run object detection
-    const predictions = await model.detect(element);
-    return predictions as DetectedObject[];
+    // Perform detection
+    const predictions = await model.detect(videoElement);
+    
+    // Convert and map predictions to our DetectedObject interface
+    return predictions.map(prediction => ({
+      bbox: prediction.bbox as [number, number, number, number],
+      class: prediction.class,
+      score: prediction.score
+    }));
   } catch (error) {
     console.error('Error detecting objects:', error);
     return [];
@@ -78,68 +87,44 @@ export const detectObjects = async (
 export const drawDetections = (
   canvas: HTMLCanvasElement,
   detections: DetectedObject[],
-  videoDimensions?: { width: number; height: number }
+  dimensions: { width: number, height: number }
 ): void => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-
-  // Clear canvas
+  
+  // Clear the canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Draw each detected object
+  // Set styling
+  ctx.lineWidth = 3;
+  ctx.font = '16px sans-serif';
+  ctx.textBaseline = 'top';
+  
   detections.forEach(detection => {
     const [x, y, width, height] = detection.bbox;
     const score = Math.round(detection.score * 100);
-    const label = `${detection.class} (${score}%)`;
     
-    // Calculate coordinates based on video dimensions if provided
-    const scaleX = videoDimensions ? canvas.width / videoDimensions.width : 1;
-    const scaleY = videoDimensions ? canvas.height / videoDimensions.height : 1;
+    // Choose color based on confidence
+    let color = 'red';
+    if (score > 90) color = 'limegreen';
+    else if (score > 75) color = 'gold';
+    else if (score > 50) color = 'orange';
     
-    const scaledX = x * scaleX;
-    const scaledY = y * scaleY;
-    const scaledWidth = width * scaleX;
-    const scaledHeight = height * scaleY;
-    
-    // Choose color based on confidence score
-    const colorMap: Record<string, string> = {
-      person: '#FF0000',      // Red
-      dog: '#00FF00',         // Green
-      cat: '#0000FF',         // Blue
-      car: '#FFFF00',         // Yellow
-      bicycle: '#FF00FF',     // Magenta
-      book: '#00FFFF',        // Cyan
-    };
-    
-    // Default color based on confidence
-    let color = '#30c4c9';  // Default color (teal)
-    if (detection.score > 0.8) color = '#22c55e';  // High confidence (green)
-    else if (detection.score < 0.6) color = '#f97316';  // Low confidence (orange)
-    
-    // Use object-specific color if available
-    if (detection.class in colorMap) {
-      color = colorMap[detection.class];
-    }
-    
-    // Draw rectangle around object
+    // Draw bounding box
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-    
-    // Draw background for label
     ctx.fillStyle = color;
-    const textMetrics = ctx.measureText(label);
-    const textHeight = 20;  // Approximate height
-    ctx.fillRect(
-      scaledX - 1, 
-      scaledY - textHeight - 4, 
-      textMetrics.width + 8, 
-      textHeight
-    );
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.stroke();
+    
+    // Draw label background
+    const textWidth = ctx.measureText(`${detection.class} ${score}%`).width;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, textWidth + 10, 24);
     
     // Draw label text
-    ctx.fillStyle = '#FFFFFF';  // White text
-    ctx.font = '14px Arial';
-    ctx.fillText(label, scaledX + 4, scaledY - 8);
+    ctx.fillStyle = 'white';
+    ctx.fillText(`${detection.class} ${score}%`, x + 5, y + 4);
   });
 }; 

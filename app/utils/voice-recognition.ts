@@ -1,101 +1,132 @@
-// Define a minimal interface for SpeechRecognition API
+// Create or update the voice-recognition.ts file with proper TypeScript typing
+
+// Define proper interfaces instead of using 'any'
+interface SpeechRecognitionEvent {
+  results: {
+    item: (index: number) => {
+      item: (index: number) => {
+        transcript: string;
+      };
+    };
+    length: number;
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognitionConstructor {
+  new(): SpeechRecognition;
+}
+
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: (event: any) => void;
-  onend: () => void;
-  onerror: (event: any) => void;
+  maxAlternatives: number;
   start: () => void;
   stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: Event) => void) | null;
 }
 
+// TypeScript declarations moved to separate ambient declaration file
+// to avoid conflicts with existing window properties
+
 export class VoiceRecognition {
-  private recognition: SpeechRecognition | null = null;
+  private recognition: any = null;
   private isListening: boolean = false;
   private onResultCallback: ((transcript: string) => void) | null = null;
   private onEndCallback: (() => void) | null = null;
 
   constructor() {
+    // Initialize only in browser environment
     if (typeof window !== 'undefined') {
-      // Use type assertion to avoid global declaration conflicts
-      const SpeechRecognitionAPI = (window as any).SpeechRecognition || 
-                                  (window as any).webkitSpeechRecognition;
+      // Use type assertion to avoid TypeScript errors with Speech Recognition API
+      const SpeechRecognition = 
+        ('SpeechRecognition' in window) ? (window as any).SpeechRecognition :
+        ('webkitSpeechRecognition' in window) ? (window as any).webkitSpeechRecognition :
+        null;
       
-      if (SpeechRecognitionAPI) {
-        this.recognition = new SpeechRecognitionAPI();
-        this.setupRecognition();
+      if (SpeechRecognition) {
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'en-US';
+        this.setupListeners();
       } else {
         console.log('Speech recognition not supported in this browser');
       }
     }
   }
 
-  private setupRecognition() {
+  private setupListeners(): void {
     if (!this.recognition) return;
-
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
-
+    
     this.recognition.onresult = (event: any) => {
-      if (this.onResultCallback) {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
-          .join('');
-        this.onResultCallback(transcript);
+      if (event.results && event.results.length > 0) {
+        // Access transcript in a more flexible way
+        const transcript = event.results[0][0].transcript;
+        
+        if (this.onResultCallback) {
+          this.onResultCallback(transcript);
+        }
       }
     };
-
+    
     this.recognition.onend = () => {
       this.isListening = false;
+      
       if (this.onEndCallback) {
         this.onEndCallback();
       }
     };
-
+    
     this.recognition.onerror = (event: any) => {
-      console.error('Speech recognition error', event.error);
       this.isListening = false;
+      console.error('Speech recognition error', event);
+      
       if (this.onEndCallback) {
         this.onEndCallback();
       }
     };
   }
 
-  public start(
-    onResult: (transcript: string) => void,
-    onEnd: () => void
-  ): boolean {
-    if (!this.recognition || this.isListening) return false;
-
+  public start(onResult: (transcript: string) => void, onEnd: () => void): boolean {
+    if (!this.recognition || this.isListening) {
+      return false;
+    }
+    
     this.onResultCallback = onResult;
     this.onEndCallback = onEnd;
-
+    
     try {
       this.recognition.start();
       this.isListening = true;
       return true;
     } catch (error) {
-      console.error('Failed to start speech recognition', error);
+      console.error('Error starting speech recognition:', error);
       return false;
     }
   }
 
-  public stop(): boolean {
-    if (!this.recognition || !this.isListening) return false;
-
+  public stop(): void {
+    if (!this.recognition || !this.isListening) {
+      return;
+    }
+    
     try {
       this.recognition.stop();
-      this.isListening = false;
-      return true;
     } catch (error) {
-      console.error('Failed to stop speech recognition', error);
-      return false;
+      console.error('Error stopping speech recognition:', error);
     }
   }
 
-  public isSupported(): boolean {
-    return !!this.recognition;
+  public isActive(): boolean {
+    return this.isListening;
   }
 } 

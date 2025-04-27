@@ -11,9 +11,17 @@ export default function VoicePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const recognition = new VoiceRecognition();
-      setVoiceRecognition(recognition);
-      setIsSupported(recognition.isRecognitionSupported());
+      // Check browser support for SpeechRecognition
+      const isSpeechRecognitionSupported = 
+        ('SpeechRecognition' in window) || 
+        ('webkitSpeechRecognition' in window);
+      
+      setIsSupported(isSpeechRecognitionSupported);
+      
+      if (isSpeechRecognitionSupported) {
+        const recognition = new VoiceRecognition();
+        setVoiceRecognition(recognition);
+      }
     }
     
     return () => {
