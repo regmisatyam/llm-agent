@@ -258,7 +258,7 @@ export default function CalendarPage() {
                 <textarea
                   value={eventInput}
                   onChange={(e) => setEventInput(e.target.value)}
-                  placeholder="e.g., Schedule a team meeting tomorrow at 2 PM for 1 hour to discuss the new project"
+                  placeholder="e.g., Schedule a team meeting on 2025 April 28 at 2 PM for 1 hour to discuss the new project"
                   rows={4}
                   className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
                 />
